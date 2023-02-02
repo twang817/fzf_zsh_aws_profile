@@ -3,6 +3,13 @@ export awsconfig=~/.aws/config
 which aws >/dev/null 2>&1 || { echo "Warning: aws cli not installed." >&2; }
 which fzf >/dev/null 2>&1 || { echo "Warning: fzf not installed." >&2; }
 
+function redraw-prompt() {
+  local f
+  for f in chpwd "${chpwd_functions[@]}" precmd "${precmd_functions[@]}"; do
+    [[ "${+functions[$f]}" == 0 ]] || "$f" &>/dev/null || true
+  done
+  p10k display -r
+}
 
 # modified from __fzf_history__ at https://github.com/junegunn/fzf/blob/master/shell/key-bindings.bash
 # objective:
@@ -12,11 +19,12 @@ which fzf >/dev/null 2>&1 || { echo "Warning: fzf not installed." >&2; }
 #   - $ Ctrl-b->pick profile->type aws command->[enter]
 fzf_aws_prof() {
   local output
-  output=$(
-    grep -e '^.profile' $awsconfig | awk -F"[][]" '{print $2}' |while read a p ; do echo "AWS_PROFILE=$p" ; done |
+  profile=$(
+    grep -e '^.profile' $awsconfig | awk -F"[][]" '{print $2}' |while read a p ; do echo "$p" ; done |
     fzf +s --tac
   ) || return
- BUFFER="$output "; zle end-of-line; 
+  export AWS_PROFILE=$profile
+  redraw-prompt
 }
 
 # Create a ZSH "Widget" and bind to key (CTRL+B here)
